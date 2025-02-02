@@ -1,0 +1,80 @@
+version: "3"
+services:
+  kafka:
+    image: 'bitnami/kafka:3.7.0'
+    container_name: kafka
+    hostname: kafka
+    ports:
+      - '9094:9094'
+    environment:
+      - KAFKA_CFG_NODE_ID=0
+      - KAFKA_CFG_PROCESS_ROLES=controller,broker
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka:9093
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+#    volumes:
+#      - kafka-data:/tmp/kraft-combined-logs
+#    networks:
+#      - kafka-network
+#
+#networks:
+#  kafka-networks:
+#
+#volumes:
+#  kafka-data:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
+    container_name: elasticsearch
+    environment:
+      - node.name=elasticsearch
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - 'ES_JAVA_OPTS=-Xms512m -Xmx512m'
+      - xpack.security.enabled=false
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    networks:
+      - elk
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.15.3
+    container_name: kibana
+    ports:
+      - "5601:5601"
+    environment:
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - 'NODE_OPTIONS=--max-old-space-size=2048'
+    networks:
+      - elk
+    depends_on:
+      - elasticsearch
+
+  redis:
+    image: redis:8.0-M03-alpine
+    container_name: redis
+    ports:
+      - '6379:6379'
+    volumes:
+      - cache:/data
+
+networks:
+  elk:
+    driver: bridge
+
+volumes:
+  es-data:
+    driver: local
+  cache:
+    driver: local
+
+
+
+
+
