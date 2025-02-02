@@ -3,7 +3,6 @@ package vn.khanhduc.bookstorebackend.service.impl;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jwt.SignedJWT;
 import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,7 +11,6 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import vn.khanhduc.bookstorebackend.dto.request.LogoutRequest;
 import vn.khanhduc.bookstorebackend.dto.request.SignInRequest;
 import vn.khanhduc.bookstorebackend.dto.response.RefreshTokenResponse;
@@ -39,7 +37,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final RedisService redisService;
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
+//    @Transactional(rollbackFor = Exception.class)
     public SignInResponse signIn(SignInRequest request, HttpServletResponse response) {
         log.info("Authentication start ...!");
         Authentication authentication = authenticationManager.authenticate(
@@ -81,9 +79,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         if(!Objects.equals(refreshToken, user.getRefreshToken()) || StringUtils.isBlank(user.getRefreshToken()))
             throw new AppException(ErrorCode.REFRESH_TOKEN_INVALID);
 
-        boolean isValidToken;
         try {
-            isValidToken = jwtService.verificationToken(refreshToken, user);
+            boolean isValidToken = jwtService.verificationToken(refreshToken, user);
             if (!isValidToken) {
                 throw new AppException(ErrorCode.REFRESH_TOKEN_INVALID);
             }

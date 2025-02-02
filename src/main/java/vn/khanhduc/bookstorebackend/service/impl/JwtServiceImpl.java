@@ -96,9 +96,12 @@ public class JwtServiceImpl implements JwtService {
     @Override
     public boolean verificationToken(String token, User user) throws ParseException, JOSEException {
         SignedJWT signedJWT = SignedJWT.parse(token);
+        var jwtId = signedJWT.getJWTClaimsSet().getJWTID();
+        if(StringUtils.isNotBlank(redisService.get(jwtId))) {
+            throw new AppException(ErrorCode.TOKEN_BLACK_LIST);
+        }
         var email = signedJWT.getJWTClaimsSet().getSubject();
         var expiration = signedJWT.getJWTClaimsSet().getExpirationTime();
-
         if( !Objects.equals(email, user.getEmail())) {
             log.error("Email in token not match email system");
             throw new AppException(ErrorCode.TOKEN_INVALID);
@@ -107,10 +110,7 @@ public class JwtServiceImpl implements JwtService {
             log.error("Token expired");
             throw new AppException(ErrorCode.TOKEN_INVALID);
         }
-        var jwtId = signedJWT.getJWTClaimsSet().getJWTID();
-        if(StringUtils.isNotBlank(redisService.get(jwtId))) {
-            throw new AppException(ErrorCode.TOKEN_BLACK_LIST);
-        }
+
         return signedJWT.verify(new MACVerifier(secretKey));
     }
 
