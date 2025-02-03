@@ -14,47 +14,46 @@ services:
       - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
       - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
       - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
-#    volumes:
-#      - kafka-data:/tmp/kraft-combined-logs
-#    networks:
-#      - kafka-network
-#
-#networks:
-#  kafka-networks:
-#
-#volumes:
-#  kafka-data:
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
-    container_name: elasticsearch
-    environment:
-      - node.name=elasticsearch
-      - discovery.type=single-node
-      - bootstrap.memory_lock=true
-      - 'ES_JAVA_OPTS=-Xms512m -Xmx512m'
-      - xpack.security.enabled=false
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
     volumes:
-      - es-data:/usr/share/elasticsearch/data
+      - kafka-data:/tmp/kraft-combined-logs
+
+  elastic-search:
+    image: elasticsearch:7.14.1
+    container_name: elasticsearch
+    restart: always
     ports:
       - "9200:9200"
+    environment:
+      - discovery.type=single-node
     networks:
-      - elk
+      - default
+
   kibana:
-    image: docker.elastic.co/kibana/kibana:8.15.3
+    image: kibana:7.14.1
     container_name: kibana
+    restart: always
     ports:
       - "5601:5601"
     environment:
-      - ELASTICSEARCH_URL=http://elasticsearch:9200
-      - 'NODE_OPTIONS=--max-old-space-size=2048'
+      - ELASTICSEARCH_HOSTS=http://elastic-search:9200
     networks:
-      - elk
-    depends_on:
-      - elasticsearch
+      - default
+
+  logstash:
+    image: logstash:7.14.1
+    container_name: logstash
+    restart: always
+    ports:
+      - "5600:5600" # Socket port
+      - "5044:5044"
+    #      - "9600:9600"
+    volumes:
+      - ./logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+    environment:
+      - XPACK_MONITORING_ELASTICSEARCH_HOSTS=http://elastic-search:9200
+      - XPACK_MONITORING_ENABLED=true
+    networks:
+      - default
 
   redis:
     image: redis:8.0-M03-alpine
@@ -63,6 +62,8 @@ services:
       - '6379:6379'
     volumes:
       - cache:/data
+    networks:
+      - elk
 
 networks:
   elk:
@@ -73,8 +74,5 @@ volumes:
     driver: local
   cache:
     driver: local
-
-
-
-
-
+  kafka-data:
+    driver: local

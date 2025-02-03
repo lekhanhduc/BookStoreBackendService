@@ -12,7 +12,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import vn.khanhduc.bookstorebackend.exception.ErrorCode;
 import vn.khanhduc.bookstorebackend.exception.AppException;
-import vn.khanhduc.bookstorebackend.model.Role;
 import vn.khanhduc.bookstorebackend.model.User;
 import vn.khanhduc.bookstorebackend.model.UserHasRole;
 import vn.khanhduc.bookstorebackend.service.JwtService;
@@ -124,7 +123,6 @@ public class JwtServiceImpl implements JwtService {
             throw new AppException(ErrorCode.TOKEN_INVALID);
         }
     }
-
 
     private String buildAuthority(User user) {
         return user.getUserHasRoles().stream().map(u -> u.getRole().getName())
