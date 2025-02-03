@@ -12,17 +12,16 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import vn.khanhduc.bookstorebackend.exception.ErrorCode;
 import vn.khanhduc.bookstorebackend.exception.AppException;
+import vn.khanhduc.bookstorebackend.model.Role;
 import vn.khanhduc.bookstorebackend.model.User;
+import vn.khanhduc.bookstorebackend.model.UserHasRole;
 import vn.khanhduc.bookstorebackend.service.JwtService;
 import vn.khanhduc.bookstorebackend.service.RedisService;
-
 import java.text.ParseException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Date;
-import java.util.Objects;
-import java.util.StringJoiner;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -115,19 +114,6 @@ public class JwtServiceImpl implements JwtService {
     }
 
     @Override
-    public String buildAuthority(User user) {
-        StringJoiner joiner = new StringJoiner(", ");
-
-        return null;
-    }
-
-    @Override
-    public String buildPermissions(User user) {
-        StringJoiner joiner = new StringJoiner(", ");
-
-        return null;
-    }
-    @Override
     public long extractTokenExpired(String token) {
         try {
             long expirationTime = SignedJWT.parse(token)
@@ -138,4 +124,22 @@ public class JwtServiceImpl implements JwtService {
             throw new AppException(ErrorCode.TOKEN_INVALID);
         }
     }
+
+
+    private String buildAuthority(User user) {
+        return user.getUserHasRoles().stream().map(u -> u.getRole().getName())
+                .collect(Collectors.joining(", "));
+    }
+
+
+    private String buildPermissions(User user) {
+        StringJoiner joiner = new StringJoiner(", ");
+        Optional.ofNullable(user.getUserHasRoles())
+                .ifPresent(userHasRoles -> userHasRoles.stream().map(UserHasRole::getRole)
+                .flatMap(role -> role.getRoleHasPermissions().stream().map(roleHasPermission -> roleHasPermission.getRole().getName()))
+                .distinct()
+                .forEach(joiner::add));
+        return joiner.toString();
+    }
+
 }
